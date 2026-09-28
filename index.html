@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Counterfeit Product Detector</title>
+    <meta charset="UTF-8">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f4f6f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .card {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            width: 400px;
+        }
+        h1 {
+            font-size: 22px;
+            margin-bottom: 20px;
+            color: #222;
+        }
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #555;
+            margin-top: 15px;
+            margin-bottom: 5px;
+        }
+        input[type="text"], input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        button {
+            width: 100%;
+            margin-top: 20px;
+            padding: 12px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+        }
+        .genuine {
+            background-color: #d4edda;
+            color: #155724;
+            display: block !important;
+        }
+        .fake {
+            background-color: #f8d7da;
+            color: #721c24;
+            display: block !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🔍 Counterfeit Product Detector</h1>
+
+        <label>Product Barcode</label>
+        <input type="text" id="barcode" placeholder="e.g. 0705632441947">
+
+        <label>Upload Packaging Photo</label>
+        <input type="file" id="fileInput">
+
+        <button onclick="verifyProduct()">Verify Product</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function verifyProduct() {
+            const barcode = document.getElementById('barcode').value;
+            const fileInput = document.getElementById('fileInput');
+            const resultDiv = document.getElementById('result');
+
+            if (!barcode || !fileInput.files[0]) {
+                resultDiv.style.display = "block";
+                resultDiv.className = "";
+                resultDiv.innerHTML = "Please enter a barcode and choose a file.";
+                return;
+            }
+
+            resultDiv.style.display = "block";
+            resultDiv.className = "";
+            resultDiv.innerHTML = "Checking...";
+
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+
+            const url = `http://127.0.0.1:8000/verify-packaging?barcode=${barcode}`;
+
+            try {
+                const response = await fetch(url, {
+                    method: "POST",
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.detail) {
+                    resultDiv.innerHTML = `Error: ${data.detail}`;
+                    resultDiv.className = "";
+                    resultDiv.style.display = "block";
+                    return;
+                }
+
+                const isGenuine = data.verdict.includes("genuine");
+                resultDiv.className = isGenuine ? "genuine" : "fake";
+                resultDiv.innerHTML = `
+                    <strong>Verdict: ${data.verdict}</strong><br>
+                    Match score: ${data.match_score_percent}%<br>
+                    Good matches: ${data.good_matches}
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `Something went wrong: ${error}`;
+                resultDiv.style.display = "block";
+            }
+        }
+    </script>
+</body>
+</html>
